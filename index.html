@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Tic Tac Toe</title>
+  <style>
+    /* (Your original styles remain unchanged) */
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Arial', sans-serif;
+      background: #d9bdfb;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .screen, .choose-side, .game-container {
+      width: 100%;
+      max-width: 400px;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background-color: #f44336;
+      color: #ffeb3b;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .xo-symbols {
+      font-size: 5rem;
+      display: flex;
+      gap: 40px;
+      font-weight: bold;
+    }
+
+    .start-btn, .side-btn, .control-btn {
+      padding: 15px 30px;
+      margin: 20px;
+      font-size: 1.2rem;
+      background-color: #ffeb3b;
+      color: #f44336;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      font-weight: bold;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      transition: transform 0.2s, background-color 0.2s;
+    }
+
+    .start-btn:hover, .side-btn:hover, .control-btn:hover {
+      transform: scale(1.05);
+      background-color: #ffd600;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, 100px);
+      grid-template-rows: repeat(3, 100px);
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .cell {
+      font-size: 3rem;
+      font-weight: bold;
+      background: #ffeb3b;
+      color: #f44336;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      transition: transform 0.2s;
+    }
+
+    .cell:hover {
+      transform: scale(1.05);
+    }
+
+    .winner {
+      background-color: #8bc34a !important;
+      color: white;
+    }
+
+    .scoreboard {
+      margin-top: 20px;
+      font-size: 1.2rem;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    #status {
+      margin-top: 10px;
+      font-weight: bold;
+      font-size: 1.1rem;
+    }
+
+    input, textarea {
+      padding: 10px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 10px;
+      margin-top: 20px;
+      width: 80%;
+      max-width: 250px;
+    }
+
+    .scorecard, .reviews {
+      background: #fff;
+      padding: 20px;
+      margin: 20px auto;
+      border: 2px solid #f44336;
+      border-radius: 20px;
+      max-width: 400px;
+      width: 90%;
+    }
+
+    .scorecard h3, .reviews h3 {
+      margin-bottom: 10px;
+      color: #f44336;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Start Screen -->
+<div class="screen" id="startScreen">
+  <div class="xo-symbols">
+    <span>X</span>
+    <span>O</span>
+  </div>
+  <input type="text" id="playerName" placeholder="Enter your name" />
+  <button class="start-btn" onclick="goToSideSelection()">Start</button>
+</div>
+
+<!-- Choose Side Screen -->
+<div class="choose-side hidden" id="sideScreen">
+  <h2>Choose a side</h2>
+  <button class="side-btn" onclick="chooseSide('X')">X</button>
+  <button class="side-btn" onclick="chooseSide('O')">O</button>
+</div>
+
+<!-- Game Screen -->
+<div class="game-container hidden" id="gameScreen">
+  <div class="scoreboard">
+    <div><span id="playerLabel">Player</span> (<span id="playerSymbol"></span>): <span id="playerScore">0</span></div>
+    <div>Computer (<span id="computerSymbol"></span>): <span id="computerScore">0</span></div>
+    <div id="status">Game starting...</div>
+  </div>
+  <div class="board" id="board"></div>
+  <button class="control-btn" onclick="resetGame()">Restart</button>
+  <button class="control-btn" onclick="goToStart()">Main Menu</button>
+</div>
+
+<!-- Scorecard -->
+<div class="scorecard">
+  <h3>Scorecard</h3>
+  <ul id="scoreHistory"></ul>
+</div>
+
+<!-- Review Section -->
+<div class="reviews">
+  <h3>Write a Review</h3>
+  <textarea id="reviewText" rows="4" placeholder="Write your feedback..."></textarea>
+  <button onclick="saveReview()" class="control-btn">Submit Review</button>
+  <div id="reviewList"></div>
+</div>
+
+<!-- Sound Effects -->
+<audio id="winSound" src="win.mp3" preload="auto"></audio>
+<audio id="loseSound" src="lose.mp3" preload="auto"></audio>
+
+<script>
+  const startScreen = document.getElementById("startScreen");
+  const sideScreen = document.getElementById("sideScreen");
+  const gameScreen = document.getElementById("gameScreen");
+  const board = document.getElementById("board");
+  const statusDiv = document.getElementById("status");
+  const playerLabel = document.getElementById("playerLabel");
+  const playerSymbolEl = document.getElementById("playerSymbol");
+  const computerSymbolEl = document.getElementById("computerSymbol");
+  const playerScoreEl = document.getElementById("playerScore");
+  const computerScoreEl = document.getElementById("computerScore");
+  const scoreHistory = document.getElementById("scoreHistory");
+  const reviewList = document.getElementById("reviewList");
+
+  let cells = [];
+  let playerSymbol = 'X';
+  let computerSymbol = 'O';
+  let gameActive = true;
+  let playerScore = 0;
+  let computerScore = 0;
+  let playerName = "You";
+
+  function goToSideSelection() {
+    const nameInput = document.getElementById("playerName").value.trim();
+    if (nameInput) playerName = nameInput;
+    startScreen.classList.add("hidden");
+    sideScreen.classList.remove("hidden");
+  }
+
+  function goToStart() {
+    location.reload();
+  }
+
+  function chooseSide(symbol) {
+    playerSymbol = symbol;
+    computerSymbol = symbol === 'X' ? 'O' : 'X';
+    sideScreen.classList.add("hidden");
+    gameScreen.classList.remove("hidden");
+    playerSymbolEl.textContent = playerSymbol;
+    computerSymbolEl.textContent = computerSymbol;
+    playerLabel.textContent = playerName;
+    resetGame();
+  }
+
+  function createBoard() {
+    board.innerHTML = '';
+    cells = [];
+    for (let i = 0; i < 9; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.dataset.index = i;
+      cell.addEventListener('click', () => handlePlayerMove(i));
+      board.appendChild(cell);
+      cells.push(cell);
+    }
+  }
+
+  function handlePlayerMove(index) {
+    if (!gameActive || cells[index].textContent) return;
+    cells[index].textContent = playerSymbol;
+    if (checkWinner(playerSymbol)) {
+      document.getElementById("winSound").play();
+      highlightWinner(playerSymbol);
+      statusDiv.textContent = `${playerName} wins!`;
+      playerScore++;
+      updateScores();
+      gameActive = false;
+      saveScore();
+      return;
+    }
+    if (isDraw()) {
+      statusDiv.textContent = "It's a draw!";
+      gameActive = false;
+      return;
+    }
+    statusDiv.textContent = "Computer's turn...";
+    setTimeout(computerMove, 500);
+  }
+
+  function computerMove() {
+    let bestMove = findBestMove();
+    cells[bestMove].textContent = computerSymbol;
+    if (checkWinner(computerSymbol)) {
+      document.getElementById("loseSound").play();
+      highlightWinner(computerSymbol);
+      statusDiv.textContent = "Computer wins!";
+      computerScore++;
+      updateScores();
+      gameActive = false;
+      saveScore();
+      return;
+    }
+    if (isDraw()) {
+      statusDiv.textContent = "It's a draw!";
+      gameActive = false;
+      return;
+    }
+    statusDiv.textContent = `${playerName}'s turn...`;
+  }
+
+  function findBestMove() {
+    for (let i = 0; i < 9; i++) {
+      if (!cells[i].textContent) {
+        cells[i].textContent = computerSymbol;
+        if (checkWinner(computerSymbol)) {
+          cells[i].textContent = '';
+          return i;
+        }
+        cells[i].textContent = '';
+      }
+    }
+    for (let i = 0; i < 9; i++) {
+      if (!cells[i].textContent) {
+        cells[i].textContent = playerSymbol;
+        if (checkWinner(playerSymbol)) {
+          cells[i].textContent = '';
+          return i;
+        }
+        cells[i].textContent = '';
+      }
+    }
+    if (!cells[4].textContent) return 4;
+    const corners = [0, 2, 6, 8];
+    const emptyCorners = corners.filter(i => !cells[i].textContent);
+    if (emptyCorners.length > 0) {
+      return emptyCorners[Math.floor(Math.random() * emptyCorners.length)];
+    }
+    let empty = cells.map((c, i) => (!c.textContent ? i : -1)).filter(i => i !== -1);
+    return empty[Math.floor(Math.random() * empty.length)];
+  }
+
+  function checkWinner(symbol) {
+    const winCombos = [
+      [0,1,2],[3,4,5],[6,7,8],
+      [0,3,6],[1,4,7],[2,5,8],
+      [0,4,8],[2,4,6]
+    ];
+    return winCombos.some(combo => combo.every(i => cells[i].textContent === symbol));
+  }
+
+  function highlightWinner(symbol) {
+    const winCombos = [
+      [0,1,2],[3,4,5],[6,7,8],
+      [0,3,6],[1,4,7],[2,5,8],
+      [0,4,8],[2,4,6]
+    ];
+    winCombos.forEach(combo => {
+      if (combo.every(i => cells[i].textContent === symbol)) {
+        combo.forEach(i => cells[i].classList.add('winner'));
+      }
+    });
+  }
+
+  function isDraw() {
+    return cells.every(cell => cell.textContent);
+  }
+
+  function resetGame() {
+    createBoard();
+    statusDiv.textContent = `${playerName}'s turn...`;
+    gameActive = true;
+  }
+
+  function updateScores() {
+    playerScoreEl.textContent = playerScore;
+    computerScoreEl.textContent = computerScore;
+  }
+
+  function saveScore() {
+    const entry = `${playerName}: ${playerScore} - Computer: ${computerScore}`;
+    const li = document.createElement('li');
+    li.textContent = entry;
+    scoreHistory.appendChild(li);
+  }
+
+  function saveReview() {
+    const review = document.getElementById("reviewText").value.trim();
+    if (review) {
+      const p = document.createElement('p');
+      p.textContent = `${playerName}: ${review}`;
+      reviewList.appendChild(p);
+      document.getElementById("reviewText").value = '';
+    }
+  }
+</script>
+
+</body>
+</html>
