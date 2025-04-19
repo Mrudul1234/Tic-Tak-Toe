@@ -192,6 +192,7 @@
 <audio id="winSound" src="win.mp3" preload="auto"></audio>
 <audio id="loseSound" src="loss.mp3" preload="auto"></audio>
 
+<!-- Js -->
 <script>
   const startScreen = document.getElementById("startScreen");
   const sideScreen = document.getElementById("sideScreen");
@@ -206,6 +207,22 @@
   const scoreHistory = document.getElementById("scoreHistory");
   const reviewList = document.getElementById("reviewList");
 
+  const playAgainBtn = document.createElement("button");
+  playAgainBtn.textContent = "Play Again";
+  playAgainBtn.className = "control-btn";
+  playAgainBtn.style.display = "none";
+  playAgainBtn.onclick = () => {
+    currentRound = 1;
+    roundResults = [];
+    playerScore = 0;
+    computerScore = 0;
+    updateScores();
+    statusDiv.textContent = `${playerName}'s turn...`;
+    playAgainBtn.style.display = "none";
+    resetGame();
+  };
+  gameScreen.appendChild(playAgainBtn);
+
   let cells = [];
   let playerSymbol = 'X';
   let computerSymbol = 'O';
@@ -213,6 +230,8 @@
   let playerScore = 0;
   let computerScore = 0;
   let playerName = "You";
+  let currentRound = 1;
+  let roundResults = [];
 
   function goToSideSelection() {
     const nameInput = document.getElementById("playerName").value.trim();
@@ -255,16 +274,17 @@
     if (checkWinner(playerSymbol)) {
       document.getElementById("winSound").play();
       highlightWinner(playerSymbol);
-      statusDiv.textContent = `${playerName} wins!`;
+      statusDiv.textContent = `${playerName} wins this round!`;
       playerScore++;
       updateScores();
       gameActive = false;
-      saveScore();
+      endRound('player');
       return;
     }
     if (isDraw()) {
       statusDiv.textContent = "It's a draw!";
       gameActive = false;
+      endRound('draw');
       return;
     }
     statusDiv.textContent = "Computer's turn...";
@@ -277,19 +297,42 @@
     if (checkWinner(computerSymbol)) {
       document.getElementById("loseSound").play();
       highlightWinner(computerSymbol);
-      statusDiv.textContent = "Computer wins!";
+      statusDiv.textContent = "Computer wins this round!";
       computerScore++;
       updateScores();
       gameActive = false;
-      saveScore();
+      endRound('computer');
       return;
     }
     if (isDraw()) {
       statusDiv.textContent = "It's a draw!";
       gameActive = false;
+      endRound('draw');
       return;
     }
     statusDiv.textContent = `${playerName}'s turn...`;
+  }
+
+  function endRound(winner) {
+    roundResults.push(winner);
+    saveScore();
+    if (currentRound >= 5) {
+      let playerWins = roundResults.filter(r => r === 'player').length;
+      let computerWins = roundResults.filter(r => r === 'computer').length;
+      setTimeout(() => {
+        if (playerWins > computerWins) {
+          statusDiv.textContent = `${playerName} wins the game!`;
+        } else if (computerWins > playerWins) {
+          statusDiv.textContent = "Computer wins the game!";
+        } else {
+          statusDiv.textContent = "The game is a draw!";
+        }
+        playAgainBtn.style.display = "inline-block";
+      }, 1000);
+    } else {
+      currentRound++;
+      setTimeout(resetGame, 1500);
+    }
   }
 
   function findBestMove() {
@@ -338,6 +381,7 @@
       return bestScore;
     }
   }
+
   function checkWinner(symbol) {
     const winCombos = [
       [0,1,2],[3,4,5],[6,7,8],
@@ -348,23 +392,19 @@
   }
 
   function highlightWinner(symbol) {
-  const winCombos = [
-    [0,1,2],[3,4,5],[6,7,8],
-    [0,3,6],[1,4,7],[2,5,8],
-    [0,4,8],[2,4,6]
-  ];
-  winCombos.forEach(combo => {
-    if (combo.every(i => cells[i].textContent === symbol)) {
-      combo.forEach(i => {
-        if (symbol === computerSymbol) {
-          cells[i].classList.add('computer-winner');
-        } else {
-          cells[i].classList.add('winner');
-        }
-      });
-    }
-  });
-}
+    const winCombos = [
+      [0,1,2],[3,4,5],[6,7,8],
+      [0,3,6],[1,4,7],[2,5,8],
+      [0,4,8],[2,4,6]
+    ];
+    winCombos.forEach(combo => {
+      if (combo.every(i => cells[i].textContent === symbol)) {
+        combo.forEach(i => {
+          cells[i].classList.add(symbol === computerSymbol ? 'computer-winner' : 'winner');
+        });
+      }
+    });
+  }
 
   function isDraw() {
     return cells.every(cell => cell.textContent);
@@ -372,8 +412,8 @@
 
   function resetGame() {
     createBoard();
-    statusDiv.textContent = `${playerName}'s turn...`;
     gameActive = true;
+    statusDiv.textContent = `${playerName}'s turn... (Round ${currentRound}/5)`;
   }
 
   function updateScores() {
@@ -382,7 +422,7 @@
   }
 
   function saveScore() {
-    const entry = `${playerName}: ${playerScore} - Computer: ${computerScore}`;
+    const entry = `Round ${currentRound}: ${playerName}: ${playerScore} - Computer: ${computerScore}`;
     const li = document.createElement('li');
     li.textContent = entry;
     scoreHistory.appendChild(li);
