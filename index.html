@@ -289,36 +289,51 @@
   }
 
   function findBestMove() {
+    let bestScore = -Infinity;
+    let move = -1;
     for (let i = 0; i < 9; i++) {
       if (!cells[i].textContent) {
         cells[i].textContent = computerSymbol;
-        if (checkWinner(computerSymbol)) {
-          cells[i].textContent = '';
-          return i;
-        }
+        let score = minimax(cells, 0, false);
         cells[i].textContent = '';
+        if (score > bestScore) {
+          bestScore = score;
+          move = i;
+        }
       }
     }
-    for (let i = 0; i < 9; i++) {
-      if (!cells[i].textContent) {
-        cells[i].textContent = playerSymbol;
-        if (checkWinner(playerSymbol)) {
-          cells[i].textContent = '';
-          return i;
-        }
-        cells[i].textContent = '';
-      }
-    }
-    if (!cells[4].textContent) return 4;
-    const corners = [0, 2, 6, 8];
-    const emptyCorners = corners.filter(i => !cells[i].textContent);
-    if (emptyCorners.length > 0) {
-      return emptyCorners[Math.floor(Math.random() * emptyCorners.length)];
-    }
-    let empty = cells.map((c, i) => (!c.textContent ? i : -1)).filter(i => i !== -1);
-    return empty[Math.floor(Math.random() * empty.length)];
+    return move;
   }
 
+  function minimax(cells, depth, isMaximizing) {
+    if (checkWinner(computerSymbol)) return 10 - depth;
+    if (checkWinner(playerSymbol)) return depth - 10;
+    if (isDraw()) return 0;
+
+    if (isMaximizing) {
+      let bestScore = -Infinity;
+      for (let i = 0; i < 9; i++) {
+        if (!cells[i].textContent) {
+          cells[i].textContent = computerSymbol;
+          let score = minimax(cells, depth + 1, false);
+          cells[i].textContent = '';
+          bestScore = Math.max(score, bestScore);
+        }
+      }
+      return bestScore;
+    } else {
+      let bestScore = Infinity;
+      for (let i = 0; i < 9; i++) {
+        if (!cells[i].textContent) {
+          cells[i].textContent = playerSymbol;
+          let score = minimax(cells, depth + 1, true);
+          cells[i].textContent = '';
+          bestScore = Math.min(score, bestScore);
+        }
+      }
+      return bestScore;
+    }
+  }
   function checkWinner(symbol) {
     const winCombos = [
       [0,1,2],[3,4,5],[6,7,8],
