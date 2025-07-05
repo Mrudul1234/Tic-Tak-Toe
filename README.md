@@ -1,6 +1,6 @@
 # Tic-Tak-Toe
 
-Namaste!!
+## Namaste!!
 
 This is first mini project💻 based on frontend and some interesting Dsa algorithms
 
